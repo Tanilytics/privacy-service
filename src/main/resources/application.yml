@@ -1,0 +1,92 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: privacy-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/analytics}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    table: flyway_schema_history_privacy
+    url: ${SPRING_FLYWAY_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/analytics}}
+    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME:postgres}}
+    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:postgres}}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+clickhouse:
+  url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/analytics}
+  username: ${CLICKHOUSE_USER:default}
+  password: ${CLICKHOUSE_PASSWORD:}
+
+jwt:
+  secret: ${JWT_SECRET:change-me-in-production-use-at-least-256-bits}
+  internal-audience: ${JWT_INTERNAL_AUDIENCE:auth-internal}
+
+auth:
+  service:
+    base-url: ${AUTH_SERVICE_URL:http://localhost:8082}
+    timeout-ms: ${AUTH_SERVICE_TIMEOUT_MS:1500}
+    internal-audience: ${JWT_INTERNAL_AUDIENCE:auth-internal}
+    internal-service-name: ${INTERNAL_SERVICE_NAME:privacy-service}
+    service-token-expiry-seconds: ${AUTH_SERVICE_TOKEN_EXPIRY_SECONDS:60}
+
+privacy:
+  scheduler:
+    deletion-cron: ${PRIVACY_DELETION_CRON:0 0 2 * * *}
+    retention-cron: ${PRIVACY_RETENTION_CRON:0 30 3 * * *}
+    salt-rotation-cron: ${PRIVACY_SALT_ROTATION_CRON:0 0 0 * * *}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+otel:
+  service:
+    name: privacy-service
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} traceId=%X{traceId} - %msg%n"
+  level:
+    root: INFO
+    com.tanalytics: DEBUG
+    org.springframework.security: WARN
